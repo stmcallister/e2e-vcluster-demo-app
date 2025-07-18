@@ -94,7 +94,7 @@ jobs:
 
       - name: Create vCluster
         run: |
-          vcluster create testing-vcluster-${{ github.sha }} \
+          vcluster create testing-vcluster \
             --namespace e2e-test \
             --set sync.fromHost.ingressClasses.enabled=true \
             --set sync.toHost.ingresses.enabled=true
