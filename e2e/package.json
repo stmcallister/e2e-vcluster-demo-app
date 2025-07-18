@@ -1,0 +1,13 @@
+{
+  "name": "burgers-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "cy:open": "cypress open",
+    "cy:run": "cypress run --browser chrome"
+  },
+  "devDependencies": {
+    "cypress": "^13.17.0"
+  }
+}

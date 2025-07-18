@@ -1,0 +1,146 @@
+name: e2e-demo
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on pull request events but only for the "main" branch
+  pull_request:
+    types:
+      - opened
+      - synchronize
+    branches:
+      - main
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
+        
+      # - uses: debianmaster/actions-k3s@master
+      #   id: k3s
+      #   with:
+      #     version: 'latest'
+
+      - name: Docker Login
+        uses: docker/login-action@v3.0.0
+        with:
+          username: ${{ secrets.DOCKER_USER }}vclust
+          password: ${{ secrets.DOCKER_PASS }}
+          logout: true
+
+      - name: Build docker images
+        run: |
+          # Fails the build if anything returns non-zero
+          set -e
+          # Echo commands to the console
+          set -x
+
+          # Build backend and frontend images
+          cd backend
+          docker build -t ${{ secrets.DOCKER_URL }}/burger-back:${{ github.sha }} .
+          cd ../frontend
+          docker build -t ${{ secrets.DOCKER_URL }}/burger-front:${{ github.sha }} .
+          cd ../
+
+      - name: Push Docker Images
+        run: |
+          # push docker images to dockerhub
+          docker push ${{ secrets.DOCKER_URL }}/burger-back:${{ github.sha }}
+          docker push ${{ secrets.DOCKER_URL }}/burger-front:${{ github.sha }}
+
+      - name: Checkout config manifests
+        uses: actions/checkout@v3
+        with:
+          repository: stmcallister/e2e-vcluster-eks-demo-config
+          path: config-repo
+          token: ${{ secrets.GH_TOKEN }}
+          persist-credentials: true
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Install vCluster
+        run: |
+          curl -sL https://github.com/loft-sh/vcluster/releases/latest/download/vcluster-linux-amd64 -o vcluster
+          chmod +x vcluster
+          sudo mv vcluster /usr/local/bin/
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region "$AWS_REGION" --name "$EKS_CLUSTER_NAME"
+
+      - name: Create Namespace
+        run: |
+          kubectl create namespace vcluster --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Create vCluster
+        run: |
+          vcluster create testing-vcluster-${{ github.sha }} \
+            --namespace my-namespace \
+            --values '{"sync":{"fromHost":{"ingressClasses":{"enabled":true}},"toHost":{"ingresses":{"enabled":true}}}}'
+
+      - name: Configure and Deploy Cluster
+        run: |
+          # Alter k8s.yaml to sed the version
+          sed -i'' -e 's/DOCKER_URL/${{ secrets.DOCKER_URL }}/g' -e 's/IMAGE_LABEL/${{ github.sha }}/g' -e 's/FRONTEND_URL/${{ vars.FRONTEND_TEST_URL }}/g' config-repo/config/k8s.yaml
+
+          # Install ngrok ingress controller
+          # helm repo add ngrok https://charts.ngrok.com
+          # helm install ngrok-operator ngrok/ngrok-operator \
+          #   --namespace burgers \
+          #   --create-namespace \
+          #   --set credentials.apiKey=${{ secrets.NGROK_API_KEY }} \
+          #   --set credentials.authtoken=${{ secrets.NGROK_AUTHTOKEN }}
+
+          # Run containers in k3s
+          kubectl apply -f config-repo/config/k8s.yaml
+
+      - name: Build Cypress Container and Run
+        run: |
+          kubectl get all -A
+          # Launch cypress container
+          cd e2e/
+          docker build -t burger-e2e:${{ github.sha }} .
+          docker run -e FRONTEND_URL='https://${{ vars.FRONTEND_TEST_URL }}' burger-e2e:${{ github.sha }}
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "stmcallister@gmail.com"
+
+      - name: Commit changes in config repo and push to render_test
+        run: |
+          # add, commit, and push changes to render_prod branch
+          git add -A 
+          git commit -m "Updating k8s manifest from ref: ${{ github.sha }}"
+          git push -u --force origin HEAD:render_test
+        working-directory: config-repo  
+
+      - name: Commit changes in config repo and push to render_prod
+        run: |
+          # update FRONTEND_URL to FRONTEND_PROD_URL
+          sed -i'' -e 's/${{ vars.FRONTEND_TEST_URL }}/${{ vars.FRONTEND_PROD_URL }}/g' config/k8s.yaml
+
+          # add, commit, and push changes to render_prod branch
+          git add -A 
+          git commit -m "Updating k8s manifest from ref: ${{ github.sha }}"
+          git push -u --force origin HEAD:render_prod
+        working-directory: config-repo       
