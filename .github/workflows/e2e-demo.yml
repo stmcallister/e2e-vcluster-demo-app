@@ -88,15 +88,16 @@ jobs:
         run: |
           aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name ${{ secrets.AWS_EKS_CLUSTER_NAME }}
 
-      - name: Create Namespace
-        run: |
-          kubectl create namespace vcluster --dry-run=client -o yaml | kubectl apply -f -
+      # - name: Create Namespace
+      #   run: |
+      #     kubectl create namespace vcluster --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Create vCluster
         run: |
           vcluster create testing-vcluster-${{ github.sha }} \
-            --namespace my-namespace \
-            --values '{"sync":{"fromHost":{"ingressClasses":{"enabled":true}},"toHost":{"ingresses":{"enabled":true}}}}'
+            --namespace e2e-test \
+            --set sync.fromHost.ingressClasses.enabled=true \
+            --set sync.toHost.ingresses.enabled=true
 
       - name: Configure and Deploy Cluster
         run: |
