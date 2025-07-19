@@ -1,5 +1,5 @@
 describe('burgerplace spec', () => {
-  const FRONTEND_URL = TESTING_URL;
+  const FRONTEND_URL = pr1.vclusterbox.com;
   const BURGER_PLACE = "Dick's Drive-In";
 
   beforeEach(() => {
