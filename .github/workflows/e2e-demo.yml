@@ -105,6 +105,7 @@ jobs:
           # Launch cypress container
           cd e2e/cypress/e2e
           pwd
+          ls -al
           
           sed -i '' -e 's/FRONTEND_URL/${{ env.FRONTEND_TEST_URL }}/g' spec.cy.js
           
