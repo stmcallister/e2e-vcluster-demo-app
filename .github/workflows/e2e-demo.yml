@@ -84,10 +84,6 @@ jobs:
           chmod +x vcluster
           sudo mv vcluster /usr/local/bin/
 
-      # - name: Create Namespace
-      #   run: |
-      #     kubectl create namespace vcluster --dry-run=client -o yaml | kubectl apply -f -
-
       - name: Create vCluster
         run: |
           vcluster create testing-vcluster \
@@ -100,9 +96,6 @@ jobs:
           # Alter k8s.yaml to sed the version
           sed -i'' -e 's/DOCKER_URL/${{ secrets.DOCKER_URL }}/g' -e 's/IMAGE_LABEL/${{ github.sha }}/g' -e 's/FRONTEND_URL/${{ env.FRONTEND_TEST_URL }}/g' config-repo/config/k8s.yaml
 
-          # Create burgers namespace
-          kubectl create namespace burgers
-          
           # Run containers in vcluster
           kubectl apply -f config-repo/config/k8s.yaml
 
