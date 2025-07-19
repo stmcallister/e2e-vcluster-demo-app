@@ -105,7 +105,7 @@ jobs:
           # Launch cypress container
           cd e2e/cypress/e2e
           chmod 777 spec.cy.js
-          sed -i '' -e 's/TESTING_URL/${{ env.FRONTEND_TEST_URL }}/g' spec.cy.js
+          sed -i'' -e 's/TESTING_URL/${{ env.FRONTEND_TEST_URL }}/g' spec.cy.js
           
           cd ../../
           docker build -t burger-e2e:${{ github.sha }} .
