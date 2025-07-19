@@ -104,6 +104,8 @@ jobs:
           # kubectl get all -A
           # Launch cypress container
           cd e2e/cypress/e2e
+          pwd
+          
           sed -i '' -e 's/FRONTEND_URL/${{ env.FRONTEND_TEST_URL }}/g' spec.cy.js
           
           cd ../../
