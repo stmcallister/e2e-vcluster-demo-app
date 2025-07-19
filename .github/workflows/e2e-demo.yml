@@ -64,7 +64,7 @@ jobs:
       - name: Checkout config manifests
         uses: actions/checkout@v3
         with:
-          repository: stmcallister/e2e-vcluster-eks-demo-config
+          repository: stmcallister/e2e-vcluster-demo-config
           path: config-repo
           token: ${{ secrets.GH_TOKEN }}
           persist-credentials: true
