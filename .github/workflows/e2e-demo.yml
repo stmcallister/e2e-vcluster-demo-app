@@ -28,11 +28,6 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
-        
-      # - uses: debianmaster/actions-k3s@master
-      #   id: k3s
-      #   with:
-      #     version: 'latest'
 
       - name: Docker Login
         uses: docker/login-action@v3.0.0
@@ -105,7 +100,10 @@ jobs:
           # Alter k8s.yaml to sed the version
           sed -i'' -e 's/DOCKER_URL/${{ secrets.DOCKER_URL }}/g' -e 's/IMAGE_LABEL/${{ github.sha }}/g' -e 's/FRONTEND_URL/${{ env.FRONTEND_TEST_URL }}/g' config-repo/config/k8s.yaml
 
-          # Run containers in k3s
+          # Create burgers namespace
+          kubectl create namespace burgers
+          
+          # Run containers in vcluster
           kubectl apply -f config-repo/config/k8s.yaml
 
       - name: Build Cypress Container and Run
