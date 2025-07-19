@@ -1,5 +1,5 @@
 describe('burgerplace spec', () => {
-  const FRONTEND_URL = TESTING_URL;
+  const FRONTEND_URL = "https://TESTING_URL";
   const BURGER_PLACE = "Dick's Drive-In";
 
   beforeEach(() => {
