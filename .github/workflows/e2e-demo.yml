@@ -104,7 +104,8 @@ jobs:
           kubectl get all -A
           # Launch cypress container
           cd e2e/
-          sed -i '' -e 's/FRONTEND_URL/${{ env.FRONTEND_TEST_URL }}/g' cypress/e2e/spec.cy.js
+          
+          sed -i '' -e 's/FRONTEND_URL/${{ env.FRONTEND_TEST_URL }}/g' e2e/cypress/e2e/spec.cy.js
           docker build -t burger-e2e:${{ github.sha }} .
           docker run burger-e2e:${{ github.sha }}
 
