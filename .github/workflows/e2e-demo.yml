@@ -20,20 +20,19 @@ jobs:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
+    env:
+      FRONTEND_TEST_URL: pr${{ github.event.pull_request.number }}.${{ vars.DOMAIN }}
+      FRONTEND_PROD_URL: burgerplaces.${{ vars.DOMAIN }}
+
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
-        
-      # - uses: debianmaster/actions-k3s@master
-      #   id: k3s
-      #   with:
-      #     version: 'latest'
 
       - name: Docker Login
         uses: docker/login-action@v3.0.0
         with:
-          username: ${{ secrets.DOCKER_USER }}vclust
+          username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASS }}
           logout: true
 
@@ -60,17 +59,19 @@ jobs:
       - name: Checkout config manifests
         uses: actions/checkout@v3
         with:
-          repository: stmcallister/e2e-vcluster-eks-demo-config
+          repository: stmcallister/e2e-vcluster-demo-config
           path: config-repo
           token: ${{ secrets.GH_TOKEN }}
           persist-credentials: true
       
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          token: ${{ secrets.DO_TOKEN }}
+
+      - name: Authenticate with DOKS
+        run: |
+          doctl kubernetes cluster kubeconfig save ${{ secrets.DO_CLUSTER_NAME }}
 
       - name: Install kubectl
         uses: azure/setup-kubectl@v3
@@ -83,41 +84,30 @@ jobs:
           chmod +x vcluster
           sudo mv vcluster /usr/local/bin/
 
-      - name: Update kubeconfig
-        run: |
-          aws eks update-kubeconfig --region "$AWS_REGION" --name "$EKS_CLUSTER_NAME"
-
-      - name: Create Namespace
-        run: |
-          kubectl create namespace vcluster --dry-run=client -o yaml | kubectl apply -f -
-
       - name: Create vCluster
         run: |
-          vcluster create testing-vcluster-${{ github.sha }} \
-            --namespace my-namespace \
-            --values '{"sync":{"fromHost":{"ingressClasses":{"enabled":true}},"toHost":{"ingresses":{"enabled":true}}}}'
+          vcluster create testing-vcluster \
+            --namespace e2e-test \
+            --set sync.fromHost.ingressClasses.enabled=true \
+            --set sync.toHost.ingresses.enabled=true
 
       - name: Configure and Deploy Cluster
         run: |
           # Alter k8s.yaml to sed the version
-          sed -i'' -e 's/DOCKER_URL/${{ secrets.DOCKER_URL }}/g' -e 's/IMAGE_LABEL/${{ github.sha }}/g' -e 's/FRONTEND_URL/${{ vars.FRONTEND_TEST_URL }}/g' config-repo/config/k8s.yaml
+          sed -i'' -e 's/DOCKER_URL/${{ secrets.DOCKER_URL }}/g' -e 's/IMAGE_LABEL/${{ github.sha }}/g' -e 's/FRONTEND_URL/${{ env.FRONTEND_TEST_URL }}/g' config-repo/config/k8s.yaml
 
-          # Install ngrok ingress controller
-          # helm repo add ngrok https://charts.ngrok.com
-          # helm install ngrok-operator ngrok/ngrok-operator \
-          #   --namespace burgers \
-          #   --create-namespace \
-          #   --set credentials.apiKey=${{ secrets.NGROK_API_KEY }} \
-          #   --set credentials.authtoken=${{ secrets.NGROK_AUTHTOKEN }}
-
-          # Run containers in k3s
+          # Run containers in vcluster
           kubectl apply -f config-repo/config/k8s.yaml
 
       - name: Build Cypress Container and Run
         run: |
-          kubectl get all -A
+          # kubectl get all -A
           # Launch cypress container
-          cd e2e/
+          cd e2e/cypress/e2e
+          chmod 777 spec.cy.js
+          sed -i'' -e 's/TESTING_URL/${{ env.FRONTEND_TEST_URL }}/g' spec.cy.js
+          
+          cd ../../
           docker build -t burger-e2e:${{ github.sha }} .
           docker run -e FRONTEND_URL='https://${{ vars.FRONTEND_TEST_URL }}' burger-e2e:${{ github.sha }}
 
@@ -137,7 +127,7 @@ jobs:
       - name: Commit changes in config repo and push to render_prod
         run: |
           # update FRONTEND_URL to FRONTEND_PROD_URL
-          sed -i'' -e 's/${{ vars.FRONTEND_TEST_URL }}/${{ vars.FRONTEND_PROD_URL }}/g' config/k8s.yaml
+          sed -i'' -e 's/${{ env.FRONTEND_TEST_URL }}/${{ env.FRONTEND_PROD_URL }}/g' config/k8s.yaml
 
           # add, commit, and push changes to render_prod branch
           git add -A 
