@@ -73,10 +73,10 @@ jobs:
         run: |
           doctl kubernetes cluster kubeconfig save ${{ secrets.DO_CLUSTER_NAME }}
 
-      # - name: Install kubectl
-      #   uses: azure/setup-kubectl@v3
-      #   with:
-      #     version: 'latest'
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
 
       # - name: Install vCluster
       #   run: |
@@ -93,10 +93,10 @@ jobs:
 
       - name: Install vCluster CLI
         uses: loft-sh/setup-vcluster@main
-        with:
-          kubectl-install: true
-      - name: Show vCluster Version
-        run: vcluster --version
+      #   with:
+      #     kubectl-install: true
+      # - name: Show vCluster Version
+      #   run: vcluster --version
 
       - name: Show kubectl Version
         run: kubectl --version --client
