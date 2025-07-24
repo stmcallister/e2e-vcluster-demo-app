@@ -28,6 +28,6 @@ jobs:
       # Delete vCluster
       - name: Delete vCluster
         env:
-          NAME: pr-${{ github.event.pull_request.number }}
+          NAME: testing-pr-${{ github.event.pull_request.number }}
         run: |
           vcluster delete $NAME
