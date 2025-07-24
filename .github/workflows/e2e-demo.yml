@@ -100,12 +100,11 @@ jobs:
 
       # - name: Show kubectl Version
       #   run: kubectl --version --client
-      - name: Create staging VCluster
+      - name: Create testing PR VCluster
         uses: loft-sh/create-vcluster@main
         with:
           name: testing-pr${{ github.event.pull_request.number }}
-          namespace: testing-pr${{ github.event.pull_request.number }}         
-          values: |
+          parameters: |
             sync:
               fromHost:
                 ingressClasses:
