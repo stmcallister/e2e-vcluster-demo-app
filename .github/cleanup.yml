@@ -2,7 +2,7 @@ name: Clean Up vCluster
 
 on:
   pull_request:
-    types: [closed, unlabeled]
+    types: [closed]
 
 jobs:
   cleanup:
