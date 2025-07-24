@@ -1,0 +1,33 @@
+name: Clean Up vCluster
+
+on:
+  pull_request:
+    types: [closed, unlabeled]
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    step:
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DO_TOKEN }}
+
+      - name: Authenticate with DOKS
+        run: |
+          doctl kubernetes cluster kubeconfig save ${{ secrets.DO_CLUSTER_NAME }}
+
+
+      - name: Install vCluster
+        run: |
+          curl -sL https://github.com/loft-sh/vcluster/releases/latest/download/vcluster-linux-amd64 -o vcluster
+          chmod +x vcluster
+          sudo mv vcluster /usr/local/bin/
+
+      # Delete vCluster
+      - name: Delete vCluster
+        env:
+          NAME: pr-${{ github.event.pull_request.number }}
+        run: |
+          vcluster delete $NAME

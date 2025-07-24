@@ -91,28 +91,6 @@ jobs:
             --set sync.fromHost.ingressClasses.enabled=true \
             --set sync.toHost.ingresses.enabled=true
 
-      # - name: Install vCluster CLI
-      #   uses: loft-sh/setup-vcluster@main
-      # #   with:
-      # #     kubectl-install: true
-      # - name: Show vCluster Version
-      #   run: vcluster --version
-
-      # # - name: Show kubectl Version
-      # #   run: kubectl --version --client
-      # - name: Create testing PR VCluster
-      #   uses: loft-sh/create-vcluster@main
-      #   with:
-      #     name: testing-pr${{ github.event.pull_request.number }}
-      #     parameters: |
-      #       sync:
-      #         fromHost:
-      #           ingressClasses:
-      #             enabled: true
-      #         toHost:
-      #           ingresses:
-      #             enabled: true
-
       - name: Configure and Deploy Cluster
         run: |
           # Alter k8s.yaml to sed the version
