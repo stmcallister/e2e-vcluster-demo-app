@@ -95,11 +95,11 @@ jobs:
         uses: loft-sh/setup-vcluster@main
       #   with:
       #     kubectl-install: true
-      # - name: Show vCluster Version
-      #   run: vcluster --version
+      - name: Show vCluster Version
+        run: vcluster --version
 
-      - name: Show kubectl Version
-        run: kubectl --version --client
+      # - name: Show kubectl Version
+      #   run: kubectl --version --client
       - name: Create staging VCluster
         uses: loft-sh/create-vcluster@main
         with:
